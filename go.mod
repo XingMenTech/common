@@ -16,7 +16,6 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/fasthttp v1.59.0
-	github.com/zhangyuanCloud/common v0.1.5
 	google.golang.org/grpc v1.70.0
 )
 

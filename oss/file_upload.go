@@ -3,7 +3,7 @@ package oss
 import (
 	"errors"
 	"github.com/sirupsen/logrus"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/logger"
 	"io"
 )
 

@@ -3,8 +3,8 @@ package gen
 import (
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/zhangyuanCloud/common/database"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/database"
+	"gitlab.novgate.com/common/common/logger"
 	"os"
 	"strings"
 	"text/template"

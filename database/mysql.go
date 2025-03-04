@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/logger"
 )
 
 // ------------------[mysql]-------------------

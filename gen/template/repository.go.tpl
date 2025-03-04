@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/zhangyuanCloud/common"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common"
+	"gitlab.novgate.com/common/common/logger"
 )
 
 var {{.VarFieldName}}Repo *{{.ModelName}}Repo

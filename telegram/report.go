@@ -2,8 +2,8 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/zhangyuanCloud/common/logger"
-	"github.com/zhangyuanCloud/common/utils"
+	"gitlab.novgate.com/common/common/logger"
+	"gitlab.novgate.com/common/common/utils"
 	"net/http"
 	"net/url"
 	"strconv"

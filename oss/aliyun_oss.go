@@ -3,7 +3,7 @@ package oss
 import (
 	"errors"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/logger"
 	"io"
 	"os"
 	"path/filepath"

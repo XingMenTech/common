@@ -50,10 +50,10 @@ func (baseController *BaseController) ReturnErrorData(ctx *gin.Context, err erro
 func (baseController *BaseController) CheckForm(form interface{}, formError map[string]string) error {
 
 	//if config.ConfigGlobal.App.RunMode == "dev" {
-	//	fmt.Println("==========post data===============================")
-	//	formJson, _ := json.Marshal(form)
-	//	fmt.Println(string(formJson))
-	//	fmt.Println("==========post data===============================")
+	fmt.Println("==========post data===============================")
+	formJson, _ := json.Marshal(form)
+	fmt.Println(string(formJson))
+	fmt.Println("==========post data===============================")
 	//}
 
 	//vconfig := &validator.Config{
@@ -61,7 +61,7 @@ func (baseController *BaseController) CheckForm(form interface{}, formError map[
 	//}
 	//参数名 英文 ==》 中文
 	var paramsMap = make(map[string]interface{})
-	formJson, _ := json.Marshal(form)
+	//formJson, _ := json.Marshal(form)
 	err := json.Unmarshal(formJson, &paramsMap)
 	if err != nil {
 		return NewMsgError(CommonParamError, err.Error())

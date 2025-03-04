@@ -7,7 +7,7 @@ package routing
 import (
 	"bytes"
 	"fmt"
-	"github.com/zhangyuanCloud/common"
+	"gitlab.novgate.com/common/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

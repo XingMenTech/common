@@ -26,7 +26,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/logger"
 	"os"
 	"runtime/debug"
 	"sync"

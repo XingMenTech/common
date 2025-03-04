@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/zhangyuanCloud/common/logger"
+	"gitlab.novgate.com/common/common/logger"
 	"testing"
 )
 
