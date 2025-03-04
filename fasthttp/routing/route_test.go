@@ -7,6 +7,7 @@ package routing
 import (
 	"bytes"
 	"fmt"
+	"github.com/zhangyuanCloud/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,7 +73,7 @@ func TestRouteURL(t *testing.T) {
 }
 
 func newHandler(tag string, buf *bytes.Buffer) Handler {
-	return func(*Context) HTTPError {
+	return func(*Context) common.Error {
 		fmt.Fprintf(buf, tag)
 		return nil
 	}
