@@ -73,5 +73,12 @@ func InitMysql(config *MysqlConfig) error {
 	if config.Debug {
 		orm.Debug = true
 	}
+	prefix = config.TablePrefix
 	return nil
+}
+
+var prefix string
+
+func TableName(tableName string) string {
+	return prefix + tableName
 }
