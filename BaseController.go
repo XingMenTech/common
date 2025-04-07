@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"gitlab.novgate.com/common/common/utils"
 	"net/http"
+	"time"
 )
 
 type BaseController struct {
@@ -46,7 +48,6 @@ func (baseController *BaseController) ReturnErrorData(ctx *gin.Context, err erro
 	ctx.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	ctx.JSON(http.StatusOK, returnData)
 }
-
 func (baseController *BaseController) CheckForm(form interface{}, formError map[string]string) error {
 
 	//if config.ConfigGlobal.App.RunMode == "dev" {
@@ -92,4 +93,32 @@ func (baseController *BaseController) CheckForm(form interface{}, formError map[
 		return errMessage
 	}
 	return nil
+}
+
+func NewSysMonitorController() *ServerController {
+	return &ServerController{
+		startTime: time.Now(),
+	}
+}
+
+type ServerController struct {
+	BaseController
+	startTime time.Time
+}
+
+func (ctrl *ServerController) Heath(ctx *gin.Context) {
+	fmt.Println("服务健康检查。。。。。。。。")
+	ctx.Writer.WriteString("OK")
+	return
+}
+
+func (ctrl *ServerController) Monitor(ctx *gin.Context) {
+
+	info := utils.ServerInfo()
+	goStartTime := ctrl.startTime.Format(utils.TimeFormat) //启动时间
+	goRunTime := time.Now().Unix() - ctrl.startTime.Unix() //运行时长（秒）
+	info["goStartTime"] = goStartTime
+	info["goRunTime"] = goRunTime
+
+	ctrl.ReturnData(ctx, Success, info)
 }
