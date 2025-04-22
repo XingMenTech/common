@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -87,10 +88,7 @@ func Get(key string, to interface{}) error {
 		return cmd.Err()
 	}
 	if err := cmd.Scan(to); err != nil {
-		if err != nil {
-			err := Decode([]byte(cmd.Val()), to)
-			return err
-		}
+		return Decode([]byte(cmd.Val()), to)
 	}
 	return nil
 }
@@ -103,7 +101,7 @@ func IsExist(key string) bool {
 
 // delete cached value by key.
 func Delete(key string) error {
-	return client.Del(ctx, key).Err()
+	return client.Del(ctx, associate(key)).Err()
 }
 
 // HKEYS
@@ -116,25 +114,37 @@ func HExists(key, field string) (bool, error) {
 	return exists.Val(), exists.Err()
 }
 
-// HSetAll
-func HSetAll(key string, val interface{}) error {
-	return client.HSet(ctx, associate(key), val).Err()
-}
-
 // HGetAll
-func HGetAll(key string, to interface{}) error {
+func HGetAll(key string, to interface{}) (error, map[string]interface{}) {
 	cmd := client.HGetAll(ctx, associate(key))
-	if err := cmd.Scan(to); err != nil {
-		return err
+	if cmd.Err() != nil {
+		return cmd.Err(), nil
 	}
-	return nil
+	resultType := reflect.TypeOf(to)
+
+	result := make(map[string]interface{})
+	for k, v := range cmd.Val() {
+		i := reflect.New(resultType).Interface()
+		if err := Decode([]byte(v), i); err != nil {
+			continue
+		}
+		result[k] = i
+	}
+
+	return nil, result
 }
-func HVals(key string) ([]string, error) {
+func HVals(key string, to interface{}) ([]interface{}, error) {
 	cmd := client.HVals(ctx, associate(key))
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
 	}
-	return cmd.Val(), nil
+	result := make([]interface{}, len(cmd.Val()))
+	resultType := reflect.TypeOf(to)
+	for i, s := range cmd.Val() {
+		val := reflect.New(resultType).Interface()
+		result[i] = Decode([]byte(s), val)
+	}
+	return result, nil
 }
 func HLen(key string) int64 {
 	hLen := client.HLen(ctx, associate(key))
@@ -156,7 +166,7 @@ func HSet(key string, field string, val interface{}) error {
 // HGet
 func HGet(key string, field string, to interface{}) error {
 	cmd := client.HGet(ctx, associate(key), field)
-	if err := cmd.Scan(to); err != nil {
+	if err := Decode([]byte(cmd.Val()), to); err != nil {
 		return err
 	}
 	return nil
@@ -171,6 +181,19 @@ func HIncrby(key string, field string, incr int64) (int64, error) {
 // HDEL
 func HDel(key string, fields ...string) error {
 	return client.HDel(ctx, associate(key), fields...).Err()
+}
+
+func HMSet(key string, fields map[string]interface{}) error {
+	args := make([]interface{}, 0)
+	for k, v := range fields {
+		encode, err := Encode(v)
+		if err != nil {
+			return err
+		}
+		args = append(args, k, string(encode))
+	}
+	return client.HMSet(ctx, associate(key), args).Err()
+
 }
 
 // 订阅主题
