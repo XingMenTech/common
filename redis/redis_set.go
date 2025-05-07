@@ -1,9 +1,7 @@
 package redis
 
-import "time"
-
 // 1	SADD key member1 [member2] 向集合添加一个或多个成员
-func SAdd(key string, members ...interface{}) (int, error) {
+func SAdd(key string, members ...any) (int, error) {
 	cmd := client.SAdd(ctx, associate(key), members...)
 	return int(cmd.Val()), cmd.Err()
 }

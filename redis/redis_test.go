@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -73,4 +74,13 @@ func TestHGetAll(t *testing.T) {
 		fmt.Println(k, v.(*args))
 	}
 	t.Log(m)
+}
+
+func TestHSet(t *testing.T) {
+	interval := time.Tick(time.Second * 30)
+	for range interval {
+
+		fmt.Println(time.Now().Unix())
+	}
+
 }

@@ -2,11 +2,9 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/google/go-querystring/query"
 	"gitlab.novgate.com/common/common/logger"
-	"gitlab.novgate.com/common/common/utils"
 	"net/http"
-	"net/url"
-	"strconv"
 )
 
 var telegram *Config
@@ -25,38 +23,12 @@ func InitTelegram(config *Config) {
 	telegram = config
 }
 
-func PayInError(payChannel string) {
-
-	payChannel = url.QueryEscape(payChannel)
-	uri := fmt.Sprintf("/payinError?payChannel=%s", payChannel)
-	go do(uri)
-}
-
-func Payout(orderNo, payChannel string, money int64) {
-	encodedPayChannel := url.QueryEscape(payChannel)
-	encodedOrderNo := url.QueryEscape(orderNo)
-	encodedMoney := url.QueryEscape(fmt.Sprintf("%0.2f", utils.Cent2Yuan(money)))
-	encodedPlatform := url.QueryEscape(telegram.Platform)
-	uri := fmt.Sprintf(
-		"/payoutWarring?payChannel=%s&orderNo=%s&amount=%s&platform=%s",
-		encodedPayChannel,
-		encodedOrderNo,
-		encodedMoney,
-		encodedPlatform,
-	)
-	go do(uri)
-}
-
-func OddsSendGifToChannel(userId int, allWins, jackpotBonus, betAmount int64, gameName string) {
-	// 定义参数
-	uid := strconv.Itoa(userId)
-	winMoney := fmt.Sprintf("%0.2f", float64(allWins+jackpotBonus-betAmount)/100)
-
-	encodedUID := url.QueryEscape(uid)
-	encodedGameName := url.QueryEscape(gameName)
-	encodedWinMoney := url.QueryEscape(winMoney)
-	uri := fmt.Sprintf("/sendgif?uid=%s&gameName=%s&winMoney=%s", encodedUID, encodedGameName, encodedWinMoney)
-	go do(uri)
+func SendMessage(uri string, param map[string]interface{}) {
+	values, err := query.Values(param)
+	if err != nil {
+		return
+	}
+	go do(uri + "?" + values.Encode())
 }
 
 func do(uri string) {
