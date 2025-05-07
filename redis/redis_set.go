@@ -1,7 +1,7 @@
 package redis
 
 // 1	SADD key member1 [member2] 向集合添加一个或多个成员
-func SAdd(key string, members ...any) (int, error) {
+func SAdd(key string, members ...interface{}) (int, error) {
 	cmd := client.SAdd(ctx, associate(key), members...)
 	return int(cmd.Val()), cmd.Err()
 }
@@ -37,7 +37,7 @@ func SInterStore(destination string, keys ...string) (int, error) {
 }
 
 // 7	SISMEMBER key member 判断 member 元素是否是集合 key 的成员
-func SIsMember(key, member string) (bool, error) {
+func SIsMember(key string, member interface{}) (bool, error) {
 	cmd := client.SIsMember(ctx, associate(key), member)
 	return cmd.Val(), cmd.Err()
 }
@@ -49,7 +49,7 @@ func SMembers(key string) ([]string, error) {
 }
 
 // 9	SMOVE source destination member 将 member 元素从 source 集合移动到 destination 集合
-func SMove(source, destination, member string) (bool, error) {
+func SMove(source, destination string, member interface{}) (bool, error) {
 	cmd := client.SMove(ctx, associate(source), associate(destination), member)
 	return cmd.Val(), cmd.Err()
 }
