@@ -5,13 +5,13 @@ import "time"
 // 1	BLPOP key1 [key2 ] timeout 移出并获取列表的第一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。
 func Blpop(key string, timeout int) (string, error) {
 	cmd := client.BLPop(ctx, time.Duration(timeout)*time.Second, associate(key))
-	return cmd.Val()[0], cmd.Err()
+	return cmd.Val()[1], cmd.Err()
 }
 
 // 2	BRPOP key1 [key2 ] timeout 移出并获取列表的最后一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。
 func Brpop(key string, timeout int) (string, error) {
 	cmd := client.BRPop(ctx, time.Duration(timeout)*time.Second, associate(key))
-	return cmd.Val()[0], cmd.Err()
+	return cmd.Val()[1], cmd.Err()
 }
 
 // 3	BRPOPLPUSH source destination timeout 从列表中弹出一个值，将弹出的元素插入到另外一个列表中并返回它； 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。
