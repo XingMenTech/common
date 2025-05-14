@@ -110,9 +110,9 @@ func Setnx(key string, value interface{}) (bool, error) {
 	return cmd.Val(), cmd.Err()
 }
 
-// SETNX WITH EXPIRE
+// SETNX WITH EXPIRE (Second)
 func SetnxExpire(key string, value interface{}, expire int64) (bool, error) {
-	cmd := client.SetNX(ctx, associate(key), value, time.Duration(expire))
+	cmd := client.SetNX(ctx, associate(key), value, time.Duration(expire)*time.Second)
 	return cmd.Val(), cmd.Err()
 }
 
