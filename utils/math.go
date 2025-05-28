@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/shopspring/decimal"
 	"math"
 	"strconv"
@@ -18,6 +19,10 @@ func AbsInt(num int64) int64 {
 func Cent2Yuan(fen int64) float64 {
 	yuan := float64(fen) / 100.0
 	return yuan
+}
+func Cent2YuanStr(fen int64) string {
+	yuan := float64(fen) / 100.0
+	return fmt.Sprintf("%.2f", yuan)
 }
 
 func YuanStr2Cent(str string) int64 {
