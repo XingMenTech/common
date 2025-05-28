@@ -41,7 +41,18 @@ func RateToClient(num int64) float64 {
 	rate := float64(num) / float64(10000)
 	return rate
 }
+func Rate2ClientStr(num int64) string {
+	rate := float64(num) / float64(10000)
+	return fmt.Sprintf("%.2f", rate)
+}
+
 func Rate2DB(yuan float64) int64 {
+	de := decimal.NewFromFloat(yuan)
+	return de.Mul(decimal.NewFromFloat(10000)).IntPart()
+}
+
+func RateStr2DB(str string) int64 {
+	yuan := StringToFloat64(str)
 	de := decimal.NewFromFloat(yuan)
 	return de.Mul(decimal.NewFromFloat(10000)).IntPart()
 }
