@@ -1,6 +1,6 @@
 package utils
 
-func Int64Contains(s []int64, i int64) bool {
+func Contains[T comparable](s []T, i T) bool {
 	for _, a := range s {
 		if a == i {
 			return true
@@ -9,9 +9,21 @@ func Int64Contains(s []int64, i int64) bool {
 	return false
 }
 
+func Deduplicate[T comparable](list []T) []T {
+	seen := make(map[T]bool)
+	var filtered []T
+	for _, val := range list {
+		if _, ok := seen[val]; !ok {
+			seen[val] = true
+			filtered = append(filtered, val)
+		}
+	}
+	return filtered
+}
+
 // 求并集
-func Union(slice1, slice2 []interface{}) []interface{} {
-	m := make(map[interface{}]int)
+func Union[T comparable](slice1, slice2 []T) []T {
+	m := make(map[T]int)
 	for _, v := range slice1 {
 		m[v]++
 	}
@@ -25,9 +37,9 @@ func Union(slice1, slice2 []interface{}) []interface{} {
 }
 
 // 求交集
-func Intersect(slice1, slice2 []interface{}) []interface{} {
-	m := make(map[interface{}]int)
-	nn := make([]interface{}, 0)
+func Intersect[T comparable](slice1, slice2 []T) []T {
+	m := make(map[T]int)
+	nn := make([]T, 0)
 	for _, v := range slice1 {
 		m[v]++
 	}
@@ -41,9 +53,9 @@ func Intersect(slice1, slice2 []interface{}) []interface{} {
 }
 
 // 求差集 slice1-并集
-func Difference(slice1, slice2 []interface{}) []interface{} {
-	m := make(map[interface{}]int)
-	nn := make([]interface{}, 0)
+func Difference[T comparable](slice1, slice2 []T) []T {
+	m := make(map[T]int)
+	nn := make([]T, 0)
 	inter := Intersect(slice1, slice2)
 	for _, v := range inter {
 		m[v]++
