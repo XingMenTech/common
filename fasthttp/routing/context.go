@@ -102,6 +102,17 @@ func (c *Context) WriteData(data interface{}) (err error) {
 	return
 }
 
+func (c *Context) RemoteIP() string {
+	// 首先尝试获取 X-Forwarded-For 头中的第一个 IP 地址
+	if xff := c.Request.Header.Peek("X-Forwarded-For"); len(xff) > 0 {
+		return string(xff)
+		// 这里你可以解析 xff 来获取第一个 IP（实际应用中可能需要更复杂的解析）
+		// 这里简单示例，直接打印出整个 X-Forwarded-For 头内容作为演示
+	}
+	// 如果 X-Forwarded-For 不存在，回退到 RemoteIP()
+	return c.RequestCtx.RemoteIP().String()
+}
+
 // init sets the request and response of the context and resets all other properties.
 func (c *Context) init(ctx *fasthttp.RequestCtx) {
 	c.RequestCtx = ctx
