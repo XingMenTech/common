@@ -24,7 +24,7 @@ type TaskScheduler struct {
 }
 
 // /初始化
-func init() {
+func InitTaskScheduler() {
 	InstanceTaskScheduler = NewTaskScheduler()
 }
 
@@ -36,6 +36,10 @@ func NewTaskScheduler() *TaskScheduler {
 		priority:    4,
 	}
 	object.ctx, object.cancel = context.WithCancel(context.Background())
+	if InstanceRoutinePool == nil {
+		InitRoutinePool()
+	}
+
 	//协程池提交任务
 	InstanceRoutinePool.PostTask(func(params []interface{}) interface{} {
 		object.schedule()

@@ -1,12 +1,7 @@
 package common
 
-type TypeOption struct {
-	Type     int    `json:"type"`
-	TypeName string `json:"typeName"`
-}
-
-type SelectOption struct {
-	Type     string `json:"type"`
+type SelectOption[T comparable] struct {
+	Type     T      `json:"type"`
 	TypeName string `json:"typeName"`
 }
 

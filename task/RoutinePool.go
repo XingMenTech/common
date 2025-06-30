@@ -81,7 +81,7 @@ type RoutinePool struct {
 }
 
 // /初始化
-func init() {
+func InitRoutinePool() {
 	InstanceRoutinePool = NewRoutinePool(DefaultPoolSize)
 }
 
