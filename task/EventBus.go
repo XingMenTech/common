@@ -16,9 +16,9 @@
 //	  }
 // }
 // 注册事件
-// singleton.InstanceEventBus.Register(reflect.TypeOf(&PingEvent{}), &PingEventHandlerV1{})
+// singleton.eventBus.Register(reflect.TypeOf(&PingEvent{}), &PingEventHandlerV1{})
 // 通知事件
-// singleton.InstanceEventBus.Notify(reflect.TypeOf(&PingEvent{}), &PingEvent{Text: "ping"})
+// singleton.eventBus.Notify(reflect.TypeOf(&PingEvent{}), &PingEvent{Text: "ping"})
 
 package task
 
@@ -39,7 +39,8 @@ const (
 )
 
 var (
-	InstanceEventBus *EventBus
+	eventBus *EventBus
+	ebOnce   sync.Once
 )
 
 type EventBeforeNotifyFilter func(eventType, event interface{}) bool
@@ -55,7 +56,7 @@ type NotifyParam struct {
 	Param           interface{}
 }
 
-// /事件总线
+// EventBus /事件总线
 type EventBus struct {
 	sync.RWMutex
 	exitFlag                 int32
@@ -69,16 +70,44 @@ type EventBus struct {
 	eventBeforeNotifyFilters []EventBeforeNotifyFilter
 }
 
-// /工厂方法
+// NewEventBus /工厂方法
 func NewEventBus() *EventBus {
-	object := &EventBus{
-		exitFlag:   0,
-		log:        logger.LOG.WithField("module", "EventBus"),
-		wg:         &sync.WaitGroup{},
-		notifyCh:   make(chan *NotifyParam, NotifyChanMaxSize),
-		eventGroup: make(map[interface{}][]Notifiable),
+	ebOnce.Do(func() {
+		object := &EventBus{
+			exitFlag:   0,
+			log:        logger.LOG.WithField("module", "EventBus"),
+			wg:         &sync.WaitGroup{},
+			notifyCh:   make(chan *NotifyParam, NotifyChanMaxSize),
+			eventGroup: make(map[interface{}][]Notifiable),
+		}
+		object.ctx, object.cancel = context.WithCancel(context.Background())
+		eventBus = object
+	})
+	return eventBus
+}
+
+// Start /启动
+func (object *EventBus) Start() {
+	for i := 0; i < EventBusWorkerSize; i++ {
+		NewRoutinePool().PostTask(func(params []interface{}) interface{} {
+			object.wait()
+			return nil
+		})
 	}
-	object.ctx, object.cancel = context.WithCancel(context.Background())
+}
+
+// Register 事件注册
+func (object *EventBus) Register(event interface{}, notifiable Notifiable) *EventBus {
+	object.Lock()
+	var notifiableArray []Notifiable
+	if v, ok := object.eventGroup[event]; !ok {
+		notifiableArray = make([]Notifiable, 0)
+	} else {
+		notifiableArray = v
+	}
+	notifiableArray = append(notifiableArray, notifiable)
+	object.eventGroup[event] = notifiableArray
+	object.Unlock()
 	return object
 }
 
@@ -87,6 +116,69 @@ func (object *EventBus) InstallBeforeNotifyFilter(filter EventBeforeNotifyFilter
 	object.Lock()
 	object.eventBeforeNotifyFilters = append(object.eventBeforeNotifyFilters, filter)
 	object.Unlock()
+}
+
+// Notify /事件通知
+func (object *EventBus) Notify(event, param interface{}) *EventBus {
+	if 0 != atomic.LoadInt32(&object.exitFlag) {
+		fmt.Fprintf(os.Stderr, "lost notify message: (%v,%v)", event, param)
+		return object
+	}
+
+	//前置过滤
+	object.RLock()
+	for _, filter := range object.eventBeforeNotifyFilters {
+		if !filter(event, param) {
+			object.RUnlock()
+			return object
+		}
+	}
+	object.RUnlock()
+
+	var notifiableArray []Notifiable
+	object.RLock()
+	if v, ok := object.eventGroup[event]; ok {
+		notifiableArray = make([]Notifiable, len(v))
+		copy(notifiableArray, v)
+	}
+	object.RUnlock()
+	if nil != notifiableArray && 0 != len(notifiableArray) {
+		object.notify(notifiableArray, param)
+	}
+	return object
+}
+
+// SyncNotify /事件同步通知
+func (object *EventBus) SyncNotify(event, param interface{}) *EventBus {
+	if 0 != atomic.LoadInt32(&object.exitFlag) {
+		fmt.Fprintf(os.Stderr, "lost notify message: (%v,%v)", event, param)
+		return object
+	}
+
+	//前置过滤
+	object.RLock()
+	for _, filter := range object.eventBeforeNotifyFilters {
+		if !filter(event, param) {
+			object.RUnlock()
+			return object
+		}
+	}
+	object.RUnlock()
+
+	var notifiableArray []Notifiable
+	object.RLock()
+	if v, ok := object.eventGroup[event]; ok {
+		notifiableArray = make([]Notifiable, len(v))
+		copy(notifiableArray, v)
+	}
+	object.RUnlock()
+	if nil != notifiableArray && 0 != len(notifiableArray) {
+		for _, notifiable := range notifiableArray {
+			notifiable.Notify(param)
+		}
+	}
+
+	return object
 }
 
 // /等待事件
@@ -98,7 +190,7 @@ func (object *EventBus) wait() {
 			//退还资源
 			object.wg.Done()
 			//事件循环非正常退出
-			InstanceRoutinePool.PostTask(func(params []interface{}) interface{} {
+			NewRoutinePool().PostTask(func(params []interface{}) interface{} {
 				object.wait()
 				return nil
 			})
@@ -133,16 +225,6 @@ func (object *EventBus) notify(notifiableArray []Notifiable, param interface{}) 
 	}
 }
 
-// /运行
-func (object *EventBus) Start() {
-	for i := 0; i < EventBusWorkerSize; i++ {
-		InstanceRoutinePool.PostTask(func(params []interface{}) interface{} {
-			object.wait()
-			return nil
-		})
-	}
-}
-
 // /停止
 func (object *EventBus) stop() {
 	atomic.StoreInt32(&object.exitFlag, 1)
@@ -158,85 +240,7 @@ func (object *EventBus) stop() {
 	object.log.Infof("event bus stopped")
 }
 
-// 注册
-func (object *EventBus) Register(event interface{}, notifiable Notifiable) *EventBus {
-	object.Lock()
-	var notifiableArray []Notifiable
-	if v, ok := object.eventGroup[event]; !ok {
-		notifiableArray = make([]Notifiable, 0)
-	} else {
-		notifiableArray = v
-	}
-	notifiableArray = append(notifiableArray, notifiable)
-	object.eventGroup[event] = notifiableArray
-	object.Unlock()
-	return object
-}
-
-// /通知
-func (object *EventBus) Notify(event, param interface{}) *EventBus {
-	if 0 != atomic.LoadInt32(&object.exitFlag) {
-		fmt.Fprintf(os.Stderr, "lost notify message: (%v,%v)", event, param)
-		return object
-	}
-
-	//前置过滤
-	object.RLock()
-	for _, filter := range object.eventBeforeNotifyFilters {
-		if !filter(event, param) {
-			object.RUnlock()
-			return object
-		}
-	}
-	object.RUnlock()
-
-	var notifiableArray []Notifiable
-	object.RLock()
-	if v, ok := object.eventGroup[event]; ok {
-		notifiableArray = make([]Notifiable, len(v))
-		copy(notifiableArray, v)
-	}
-	object.RUnlock()
-	if nil != notifiableArray && 0 != len(notifiableArray) {
-		object.notify(notifiableArray, param)
-	}
-	return object
-}
-
-// /同步通知
-func (object *EventBus) SyncNotify(event, param interface{}) *EventBus {
-	if 0 != atomic.LoadInt32(&object.exitFlag) {
-		fmt.Fprintf(os.Stderr, "lost notify message: (%v,%v)", event, param)
-		return object
-	}
-
-	//前置过滤
-	object.RLock()
-	for _, filter := range object.eventBeforeNotifyFilters {
-		if !filter(event, param) {
-			object.RUnlock()
-			return object
-		}
-	}
-	object.RUnlock()
-
-	var notifiableArray []Notifiable
-	object.RLock()
-	if v, ok := object.eventGroup[event]; ok {
-		notifiableArray = make([]Notifiable, len(v))
-		copy(notifiableArray, v)
-	}
-	object.RUnlock()
-	if nil != notifiableArray && 0 != len(notifiableArray) {
-		for _, notifiable := range notifiableArray {
-			notifiable.Notify(param)
-		}
-	}
-
-	return object
-}
-
-// /名字
+// Name /名字
 func (object *EventBus) Name() string {
 	return "EventBus"
 }
@@ -251,10 +255,10 @@ func (object *EventBus) ShutdownPriority() int {
 	return object.priority
 }
 
-// /开始停服
+// BeforeShutdown /开始停服
 func (object *EventBus) BeforeShutdown() {
 	object.stop()
 }
 
-// /结束停服
+// AfterShutdown /结束停服
 func (object *EventBus) AfterShutdown() {}

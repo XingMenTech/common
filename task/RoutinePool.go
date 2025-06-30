@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	InstanceRoutinePool *RoutinePool
+	routinePool *RoutinePool
+	rpOnce      sync.Once
 )
 
 const (
@@ -80,35 +81,33 @@ type RoutinePool struct {
 	priority        int
 }
 
-// /初始化
-func InitRoutinePool() {
-	InstanceRoutinePool = NewRoutinePool(DefaultPoolSize)
-}
-
 // NewRoutinePool /工厂方法
-func NewRoutinePool(minRouting int64) *RoutinePool {
-	object := &RoutinePool{
-		minRoutine:      minRouting,
-		recycleNotifyCh: make(chan interface{}, 2*minRouting),
-		wg:              &sync.WaitGroup{},
-		priority:        2,
-	}
-	object.ctx, object.cancel = context.WithCancel(context.Background())
-	object.contextPool = make([]*Context, minRouting)
-	for i := int64(0); i < minRouting; i++ {
-		ctx := &Context{
-			idleFlag:        1,
-			taskCh:          make(chan *TaskParam, 16),
-			recycleNotifyCh: object.recycleNotifyCh,
-			parentWG:        object.wg,
+func NewRoutinePool() *RoutinePool {
+	rpOnce.Do(func() {
+		object := &RoutinePool{
+			minRoutine:      DefaultPoolSize,
+			recycleNotifyCh: make(chan interface{}, 2*DefaultPoolSize),
 			wg:              &sync.WaitGroup{},
+			priority:        2,
 		}
-		ctx.ctx, ctx.cancel = context.WithCancel(context.Background())
-		object.contextPool[i] = ctx
-		go ctx.loop()
-	}
-	go object.recycleRouting()
-	return object
+		object.ctx, object.cancel = context.WithCancel(context.Background())
+		object.contextPool = make([]*Context, DefaultPoolSize)
+		for i := int64(0); i < DefaultPoolSize; i++ {
+			ctx := &Context{
+				idleFlag:        1,
+				taskCh:          make(chan *TaskParam, 16),
+				recycleNotifyCh: object.recycleNotifyCh,
+				parentWG:        object.wg,
+				wg:              &sync.WaitGroup{},
+			}
+			ctx.ctx, ctx.cancel = context.WithCancel(context.Background())
+			object.contextPool[i] = ctx
+			go ctx.loop()
+		}
+		go object.recycleRouting()
+		routinePool = object
+	})
+	return routinePool
 }
 
 // /回收上下文

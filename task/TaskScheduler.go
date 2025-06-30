@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	InstanceTaskScheduler *TaskScheduler
+	taskScheduler *TaskScheduler
+	tsOnce        sync.Once
 )
 
 // TaskScheduler /任务调度器
@@ -23,29 +24,26 @@ type TaskScheduler struct {
 	priority    int
 }
 
-// /初始化
-func InitTaskScheduler() {
-	InstanceTaskScheduler = NewTaskScheduler()
-}
-
 // NewTaskScheduler /工厂方法
 func NewTaskScheduler() *TaskScheduler {
-	object := &TaskScheduler{
-		allTriggers: make(map[Trigger]interface{}, 0),
-		wg:          &sync.WaitGroup{},
-		priority:    4,
-	}
-	object.ctx, object.cancel = context.WithCancel(context.Background())
-	if InstanceRoutinePool == nil {
-		InitRoutinePool()
-	}
 
-	//协程池提交任务
-	InstanceRoutinePool.PostTask(func(params []interface{}) interface{} {
-		object.schedule()
-		return nil
+	tsOnce.Do(func() {
+		object := &TaskScheduler{
+			allTriggers: make(map[Trigger]interface{}, 0),
+			wg:          &sync.WaitGroup{},
+			priority:    4,
+		}
+		object.ctx, object.cancel = context.WithCancel(context.Background())
+		//协程池提交任务
+		NewRoutinePool().PostTask(func(params []interface{}) interface{} {
+			object.schedule()
+			return nil
+		})
+
+		taskScheduler = object
 	})
-	return object
+
+	return taskScheduler
 }
 
 // /循环
@@ -60,7 +58,7 @@ loop:
 			object.RLock()
 			for trigger := range object.allTriggers {
 				if trigger.CanTrigger(now) {
-					InstanceRoutinePool.PostTask(func(params []interface{}) interface{} {
+					routinePool.PostTask(func(params []interface{}) interface{} {
 						trigger := params[0].(Trigger)
 						trigger.Trigger()
 						return nil
