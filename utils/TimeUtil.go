@@ -743,3 +743,9 @@ func IsCurDay(t time.Time) bool {
 	}
 	return true
 }
+
+// 是否是同一天
+func IsSameDay(t1, t2 time.Time) bool {
+	// 将两个时间调整到相同的时区（例如UTC），然后只比较年月日部分
+	return t1.In(time.UTC).Format("2006-01-02") == t2.In(time.UTC).Format("2006-01-02")
+}

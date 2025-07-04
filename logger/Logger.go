@@ -25,8 +25,8 @@ const (
 
 // --------------------[log]-------------------
 type LogConfig struct {
-	Path  string `yaml:"path"`
-	Level int    `yaml:"level"`
+	Path  string `yaml:"path" json:"path" comment:"日志文件路径"`
+	Level int    `yaml:"level" json:"level" comment:"日志级别"`
 }
 
 // LogrusFileLoggerHook /文件日志Hook

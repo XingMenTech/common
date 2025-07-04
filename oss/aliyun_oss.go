@@ -11,11 +11,11 @@ import (
 
 // ------------------[oss]------------------
 type AliyunOssConfigStruct struct {
-	Endpoint   string `yaml:"endpoint"`
-	AccessId   string `yaml:"access_id"`
-	AccessKey  string `yaml:"access_key"`
-	BucketName string `yaml:"bucket"`
-	OssUrl     string `yaml:"oss_url"`
+	Endpoint   string `yaml:"endpoint" json:"endpoint" comment:"接口地址"`
+	AccessId   string `yaml:"access_id" json:"accessId" comment:"accessId"`
+	AccessKey  string `yaml:"access_key" json:"accessKey" comment:"accessKey"`
+	BucketName string `yaml:"bucket" json:"bucketName" comment:"存储桶"`
+	OssUrl     string `yaml:"oss_url" json:"ossUrl" comment:"CDN域名"`
 }
 
 type AliyunAdapter struct {

@@ -14,12 +14,12 @@ import (
 
 // ------------------[aws s3]------------------
 type AwsS3ConfigStruct struct {
-	Endpoint   string `yaml:"endpoint"`
-	AccessId   string `yaml:"access_id"`
-	AccessKey  string `yaml:"access_key"`
-	BucketName string `yaml:"bucket"`
-	OssUrl     string `yaml:"oss_url"`
-	Region     string `yaml:"region"`
+	Endpoint   string `yaml:"endpoint" json:"endpoint" comment:"接口地址"`
+	AccessId   string `yaml:"access_id" json:"accessId" comment:"accessId"`
+	AccessKey  string `yaml:"access_key" json:"accessKey" comment:"accessKey"`
+	BucketName string `yaml:"bucket" json:"bucketName" comment:"s3库名"`
+	OssUrl     string `yaml:"oss_url" json:"ossUrl" comment:"CDN域名"`
+	Region     string `yaml:"region" json:"region" comment:"区域"`
 }
 
 type AwsAdapter struct {
@@ -29,6 +29,7 @@ type AwsAdapter struct {
 func NewAwsAdapter() FileUploadAdapter {
 	return &AwsAdapter{}
 }
+
 func (a *AwsAdapter) Upload(src io.Reader, name, uploadPath string) (path string, err error) {
 	conf := &aws.Config{
 		Credentials: credentials.NewStaticCredentials(a.config.AccessId, a.config.AccessKey, ""),

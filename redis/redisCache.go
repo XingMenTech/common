@@ -16,10 +16,10 @@ var (
 )
 
 type Config struct {
-	Prefix   string `yaml:"redis_prefix" json:"prefix"`
-	Host     string `yaml:"redis_host" json:"host"`
-	Password string `yaml:"redis_password" json:"password"`
-	DbNum    int    `yaml:"redis_dbnum" json:"dbNum"`
+	Prefix   string `yaml:"prefix" json:"prefix" comment:"KEY前缀"`
+	Host     string `yaml:"host" json:"host" comment:"主机名"`
+	Password string `yaml:"password" json:"password" comment:"密码"`
+	DbNum    int    `yaml:"dbNum" json:"dbNum" comment:"数据库"`
 }
 
 func InitRedisCache(config *Config) error {
