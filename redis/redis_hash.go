@@ -16,8 +16,11 @@ func HExists(key, field string) (bool, error) {
 // 3	HGET key field 获取存储在哈希表中指定字段的值。
 func HGet(key string, field string, to interface{}) error {
 	cmd := client.HGet(ctx, associate(key), field)
-	if err := Decode([]byte(cmd.Val()), to); err != nil {
-		return err
+	if cmd.Err() != nil {
+		return cmd.Err()
+	}
+	if err := cmd.Scan(to); err != nil {
+		return decode([]byte(cmd.Val()), to)
 	}
 	return nil
 }
@@ -33,7 +36,7 @@ func HGetAll(key string, to interface{}) (error, map[string]interface{}) {
 	result := make(map[string]interface{})
 	for k, v := range cmd.Val() {
 		i := reflect.New(resultType).Interface()
-		if err := Decode([]byte(v), i); err != nil {
+		if err := decode([]byte(v), i); err != nil {
 			continue
 		}
 		result[k] = i
@@ -79,7 +82,7 @@ func HMGet(key string, fields ...string) []interface{} {
 func HMSet(key string, fields map[string]interface{}) error {
 	args := make([]interface{}, 0)
 	for k, v := range fields {
-		encode, err := Encode(v)
+		encode, err := encode(v)
 		if err != nil {
 			return err
 		}
@@ -91,7 +94,7 @@ func HMSet(key string, fields map[string]interface{}) error {
 
 // 11	HSET key field value 将哈希表 key 中的字段 field 的值设为 value 。
 func HSet(key string, field string, val interface{}) error {
-	valByte, err := Encode(val)
+	valByte, err := encode(val)
 	if err != nil {
 		return err
 	}
@@ -100,7 +103,7 @@ func HSet(key string, field string, val interface{}) error {
 
 // 12	HSETNX key field value 只有在字段 field 不存在时，设置哈希表字段的值。
 func HSetnx(key string, field string, val interface{}) (bool, error) {
-	valByte, err := Encode(val)
+	valByte, err := encode(val)
 	if err != nil {
 		return false, err
 	}
@@ -117,7 +120,10 @@ func HVals(key string, to interface{}) ([]interface{}, error) {
 	resultType := reflect.TypeOf(to)
 	for i, s := range cmd.Val() {
 		val := reflect.New(resultType).Interface()
-		result[i] = Decode([]byte(s), val)
+		if err := decode([]byte(s), val); err != nil {
+			continue
+		}
+		result[i] = val
 	}
 	return result, nil
 }

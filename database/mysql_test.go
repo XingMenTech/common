@@ -17,7 +17,7 @@ func TestMysql(t *testing.T) {
 		Port:             "port",
 		Charset:          "utf8",
 		DefaultRowsLimit: 1,
-		Debug:            true,
+		Debug:            "true",
 		TablePrefix:      "",
 	}
 	err := InitMysql(config)

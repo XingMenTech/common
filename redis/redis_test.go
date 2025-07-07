@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -11,7 +12,7 @@ func init() {
 		Prefix:   "aaaa",
 		Host:     "127.0.0.1:6379",
 		Password: "",
-		DbNum:    0,
+		DbNum:    strconv.Itoa(0),
 	})
 	if err != nil {
 		panic(err)
@@ -25,6 +26,7 @@ type args struct {
 }
 
 func TestHGetAll(t *testing.T) {
+
 	exist2 := IsExist("test_users2")
 	fmt.Println("test_users2 IsExist", exist2)
 
@@ -65,6 +67,13 @@ func TestHGetAll(t *testing.T) {
 	}
 
 	t.Log("HLen", HLen("test_users"))
+
+	var arg string
+	err = HGet("test_users", "user_1", &arg)
+	if err != nil {
+		t.Error("HGetAll error:", err)
+		return
+	}
 
 	err, m := HGetAll("test_users", args{})
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"gitlab.novgate.com/common/common/utils"
 	"os"
 	"path/filepath"
 	"time"
@@ -26,7 +27,7 @@ const (
 // --------------------[log]-------------------
 type LogConfig struct {
 	Path  string `yaml:"path" json:"path" comment:"日志文件路径"`
-	Level int    `yaml:"level" json:"level" comment:"日志级别"`
+	Level string `yaml:"level" json:"level" comment:"日志级别"`
 }
 
 // LogrusFileLoggerHook /文件日志Hook
@@ -174,8 +175,8 @@ func InitializeLogger(logConfig *LogConfig) {
 
 		//日志等级
 		logLevelConfig := int(logrus.DebugLevel)
-		if logConfig.Level > 0 {
-			logLevelConfig = logConfig.Level
+		if logConfig.Level != "" {
+			logLevelConfig = utils.StringToInt(logConfig.Level)
 		}
 		logLevel := logrus.Level(logLevelConfig)
 

@@ -19,7 +19,7 @@ type MysqlConfig struct {
 	Port             string `yaml:"db_port" json:"port" comment:"数据库端口"`
 	Charset          string `yaml:"db_charset" json:"charset" comment:"字符集类型"`
 	DefaultRowsLimit int    `yaml:"default_rows_limit" json:"defaultRowsLimit" comment:"搜索最大条数限制,-1不限制"`
-	Debug            bool   `yaml:"db_debug" json:"debug" comment:"是否调试模式"`
+	Debug            string `yaml:"db_debug" json:"debug" comment:"是否调试模式"`
 	TablePrefix      string `yaml:"db_table_prefix" json:"tablePrefix" comment:"表前缀"`
 }
 
@@ -45,7 +45,7 @@ func InitMysql(config *MysqlConfig) error {
 	orm.DefaultRowsLimit = -1
 
 	//如果是开发模式，则显示命令信息
-	if config.Debug {
+	if config.Debug == "true" {
 		orm.Debug = true
 	}
 	prefix = config.TablePrefix

@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"gitlab.novgate.com/common/common/utils"
+	"reflect"
 	"time"
+	"unsafe"
 )
 
 var (
@@ -19,14 +22,16 @@ type Config struct {
 	Prefix   string `yaml:"prefix" json:"prefix" comment:"KEY前缀"`
 	Host     string `yaml:"host" json:"host" comment:"主机名"`
 	Password string `yaml:"password" json:"password" comment:"密码"`
-	DbNum    int    `yaml:"dbNum" json:"dbNum" comment:"数据库"`
+	DbNum    string `yaml:"dbNum" json:"dbNum" comment:"数据库"`
 }
 
 func InitRedisCache(config *Config) error {
 	ctx = context.Background()
 	Key = config.Prefix
 
-	cli, err := startAndGC(config.Host, config.Password, config.DbNum)
+	dbNum := utils.StringToInt(config.DbNum)
+
+	cli, err := startAndGC(config.Host, config.Password, dbNum)
 	if err != nil {
 		return errors.New(fmt.Sprintf("can't connect redis service %v", err))
 	}
@@ -78,7 +83,7 @@ func PSubscribe(channel ...string) *redis.PubSub {
 
 // 发布主题消息
 func Publish(channel string, msg interface{}) error {
-	msgByte, err := Encode(msg)
+	msgByte, err := encode(msg)
 	if err != nil {
 		return err
 	}
@@ -101,7 +106,7 @@ func ExpireIn(key string, d time.Duration) error {
 	return client.Expire(ctx, associate(key), d).Err()
 }
 
-func Encode(data interface{}) ([]byte, error) {
+func encode(data interface{}) ([]byte, error) {
 	if data == nil {
 		return nil, errors.New("data is nil")
 	}
@@ -116,18 +121,24 @@ func Encode(data interface{}) ([]byte, error) {
 	}
 }
 
-func Decode(data []byte, to interface{}) error {
+func decode(data []byte, v any) error {
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(v)}
+	}
+
 	if data == nil {
 		return errors.New("data is nil")
 	}
-	switch to.(type) {
-	case string:
-		to = string(data)
+	switch v.(type) {
+	case *string:
+		v = *(*string)(unsafe.Pointer(&data))
 		return nil
-	case []byte:
-		to = data
+	case *[]byte:
+		v = data
 		return nil
 	default:
-		return json.Unmarshal(data, to)
+		return json.Unmarshal(data, v)
 	}
 }
