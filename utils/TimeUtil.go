@@ -544,50 +544,45 @@ func ParseTimeRangeByHour(startTimeStr, endTimeStr string) (timeRange, timeMiddl
 	return
 }
 
-// / 时间测量
+// TimeMeasure / 时间测量
 type TimeMeasure struct {
 	start int64
 }
 
-// /开始
+// Start /开始
 func (object *TimeMeasure) Start() {
 	object.start = time.Now().UnixNano()
 }
 
-// /停止
+// Stop /停止
 func (object *TimeMeasure) Stop() int64 {
 	return time.Now().UnixNano() - object.start
 }
 
-func FormatTime(time time.Time, loc *time.Location, format string) string {
-	return time.In(loc).Format(format)
+func formatTime(t time.Time, loc *time.Location, format string) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.In(loc).Format(format)
 }
 
-func FormatUtcTime(time time.Time) string {
-	if time.IsZero() {
-		return ""
-	}
-	return time.UTC().Format(TimeFormat)
+func FormatUtcTime(t time.Time) string {
+	return formatTime(t, time.UTC, TimeFormat)
 }
 
-func FormatLocalTime(time time.Time) string {
-	if time.IsZero() {
-		return ""
-	}
-	return time.In(TimeLocation).Format(TimeFormat)
+func FormatLocalTime(t time.Time) string {
+	return formatTime(t, TimeLocation, TimeFormat)
 }
 
-func FormatLocalDate(time time.Time) string {
-	if time.IsZero() {
-		return ""
-	}
-	return time.In(TimeLocation).Format(DateFormat)
+func FormatLocalDate(t time.Time) string {
+	return formatTime(t, TimeLocation, DateFormat)
 }
-func FormatDate(time time.Time) string {
-	if time.IsZero() {
-		return ""
-	}
-	return time.Format(DateFormat)
+
+func FormatTime(t time.Time) string {
+	return formatTime(t, t.Location(), TimeFormat)
+}
+func FormatDate(t time.Time) string {
+	return formatTime(t, t.Location(), DateFormat)
 }
 
 func ParseLocalDate(value string) time.Time {
@@ -595,12 +590,20 @@ func ParseLocalDate(value string) time.Time {
 	return t
 }
 func ParseLocalTime(value string) time.Time {
-	t, _ := time.ParseInLocation(TimeFormat, value, TimeLocation)
+	layout := DateFormat
+	if len(value) > 10 {
+		layout = TimeFormat
+	}
+	t, _ := time.ParseInLocation(layout, value, TimeLocation)
 	return t
 }
 
 func ParseUtcTime(value string) time.Time {
-	t, _ := time.ParseInLocation(TimeFormat, value, time.Local)
+	layout := DateFormat
+	if len(value) > 10 {
+		layout = TimeFormat
+	}
+	t, _ := time.ParseInLocation(layout, value, time.UTC)
 	return t
 }
 
@@ -653,7 +656,7 @@ func GetDateStr(unix int64) string {
 	return t1.Format("20060102")
 }
 
-// 获得本周第一天
+// CurWeekStart 获得本周第一天
 func CurWeekStart() time.Time {
 	now := Now()
 	//周日为每周第一天
@@ -668,13 +671,13 @@ func CurWeekStart() time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, TimeLocation).AddDate(0, 0, -offset)
 }
 
-// 获得本月一号时间
+// CurMonthStart 获得本月一号时间
 func CurMonthStart() time.Time {
 	now := Now() // time.Now().In(TimeLocation)
 	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, TimeLocation)
 }
 
-// 获得下周第一天
+// NextWeekStart 获得下周第一天
 func NextWeekStart() time.Time {
 	now := Now() // time.Now().In(TimeLocation)
 
@@ -695,41 +698,41 @@ func NextWeekStart() time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, TimeLocation).AddDate(0, 0, offset)
 }
 
-// 获得下个月一号时间
+// NextMonthStart 获得下个月一号时间
 func NextMonthStart() time.Time {
 	now := Now() // time.Now().In(TimeLocation)
 	return time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, TimeLocation)
 }
 
-// 获得今天开始时间
+// CurTodayStart 获得今天开始时间
 func CurTodayStart() time.Time {
 	now := Now()            // time.Now().In(TimeLocation)
 	return StartByTime(now) // time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, TimeLocation)
 }
 
-// 获得今天开始时间
+// CurTodayEnd 获得今天开始时间
 func CurTodayEnd() time.Time {
 	now := Now()          // time.Now().In(TimeLocation)
 	return EndByTime(now) // time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, TimeLocation)
 }
 
-// 获得明天开始时间
+// NextDayStart 获得明天开始时间
 func NextDayStart() time.Time {
 	now := Now()                                // time.Now().In(TimeLocation)
-	return StartByTime(now).Add(24 * time.Hour) // time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, TimeLocation).AddDate(0, 0, 1)
+	return StartByTime(now.Add(24 * time.Hour)) // time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, TimeLocation).AddDate(0, 0, 1)
 }
 
-// 获得指定日期开始时间
+// StartByTime 获得指定日期开始时间
 func StartByTime(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
-// 获得指定日期开始时间
+// EndByTime 获得指定日期开始时间
 func EndByTime(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, t.Location())
 }
 
-// 是否是今天
+// IsCurDay 是否是今天
 func IsCurDay(t time.Time) bool {
 	cur := CurTodayStart()
 	if t.Year() != cur.Year() {
@@ -744,7 +747,7 @@ func IsCurDay(t time.Time) bool {
 	return true
 }
 
-// 是否是同一天
+// IsSameDay 是否是同一天
 func IsSameDay(t1, t2 time.Time) bool {
 	// 将两个时间调整到相同的时区（例如UTC），然后只比较年月日部分
 	return t1.In(time.UTC).Format("2006-01-02") == t2.In(time.UTC).Format("2006-01-02")

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"gitlab.novgate.com/common/common/utils"
 	"time"
 )
 
@@ -44,9 +45,6 @@ func (bqp *BaseQueryParam) GetLimit() (limit, offset int) {
 	return
 }
 
-const DateTimeFormat = "2006-01-02 15:04:05"
-const DateFormat = "2006-01-02"
-
 // BaseTimeRequest 时间区间参数
 type BaseTimeRequest struct {
 	StartTime string `json:"startTime" form:"startTime"` //开始时间
@@ -61,25 +59,9 @@ func (req *BaseTimeRequest) IsValid() bool {
 }
 
 func (req *BaseTimeRequest) GetTime() (start, end time.Time) {
-	t1, _ := time.ParseInLocation(DateTimeFormat, req.StartTime, time.UTC)
-	t2, _ := time.ParseInLocation(DateTimeFormat, req.EndTime, time.UTC)
+	t1 := utils.ParseLocalTime(req.StartTime)
+	t2 := utils.ParseLocalTime(req.EndTime)
 	return t1, t2
-}
-
-func (req *BaseTimeRequest) GetDate() (start, end time.Time) {
-	t1, _ := time.ParseInLocation(DateFormat, req.StartTime, time.UTC)
-	t2, _ := time.ParseInLocation(DateFormat, req.EndTime, time.UTC)
-	return t1, t2
-}
-
-func (req *BaseTimeRequest) GetFormatTime() (start, end string) {
-	t1, t2 := req.GetTime()
-	return t1.Format(DateTimeFormat), t2.Format(DateTimeFormat)
-}
-
-func (req *BaseTimeRequest) GetFormatDate() (start, end string) {
-	t1, t2 := req.GetDate()
-	return t1.Format(DateFormat), t2.Format(DateFormat)
 }
 
 func (req *BaseTimeRequest) DiffDays() int {
