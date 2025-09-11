@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
-	"gitlab.novgate.com/common/common/utils"
 	"reflect"
 	"time"
 	"unsafe"
+
+	"github.com/go-redis/redis/v8"
+	"gitlab.novgate.com/common/common/utils"
 )
 
 var (
@@ -60,28 +61,28 @@ func startAndGC(host, passWord string, dbNum int) (*redis.Client, error) {
 	return cli, nil
 }
 
-// check if cached value exists or not.
+// IsExist check if cached value exists or not.
 func IsExist(key string) bool {
 	val := client.Exists(ctx, associate(key)).Val()
 	return val != 0
 }
 
-// delete cached value by key.
+// Delete delete cached value by key.
 func Delete(key string) error {
 	return client.Del(ctx, associate(key)).Err()
 }
 
-// 订阅主题
+// Subscribe 订阅主题
 func Subscribe(channel ...string) *redis.PubSub {
 	return client.Subscribe(ctx, channel...)
 }
 
-// 订阅主题
+// PSubscribe 订阅主题
 func PSubscribe(channel ...string) *redis.PubSub {
 	return client.PSubscribe(ctx, channel...)
 }
 
-// 发布主题消息
+// Publish 发布主题消息
 func Publish(channel string, msg interface{}) error {
 	msgByte, err := encode(msg)
 	if err != nil {
@@ -94,7 +95,7 @@ func ReceiveMessage(pubSub *redis.PubSub) (*redis.Message, error) {
 	return pubSub.ReceiveMessage(ctx)
 }
 
-// clear all cache.
+// ClearAll clear all cache.
 func ClearAll() error {
 	return client.FlushAll(ctx).Err()
 }
