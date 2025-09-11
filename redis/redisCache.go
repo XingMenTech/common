@@ -121,7 +121,6 @@ func encode(data interface{}) ([]byte, error) {
 		return json.Marshal(data)
 	}
 }
-
 func decode(data []byte, v any) error {
 
 	rv := reflect.ValueOf(v)
