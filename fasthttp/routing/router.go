@@ -7,7 +7,7 @@ package routing
 
 import (
 	"encoding/json"
-	"gitlab.novgate.com/common/common"
+	"github.com/XingMenTech/common"
 	"net/http"
 	"sort"
 	"strings"

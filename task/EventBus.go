@@ -25,8 +25,8 @@ package task
 import (
 	"context"
 	"fmt"
+	"github.com/XingMenTech/common/logger"
 	"github.com/sirupsen/logrus"
-	"gitlab.novgate.com/common/common/logger"
 	"os"
 	"runtime/debug"
 	"sync"

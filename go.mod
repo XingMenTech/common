@@ -1,4 +1,4 @@
-module gitlab.novgate.com/common/common
+module github.com/XingMenTech/common
 
 go 1.22.10
 

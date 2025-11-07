@@ -2,8 +2,8 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/XingMenTech/common/logger"
 	"github.com/google/go-querystring/query"
-	"gitlab.novgate.com/common/common/logger"
 	"net/http"
 )
 

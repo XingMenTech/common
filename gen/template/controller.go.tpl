@@ -3,8 +3,8 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"gitlab.novgate.com/common/common"
-	"gitlab.novgate.com/common/common/logger"
+	"github.com/XingMenTech/common"
+	"github.com/XingMenTech/common/logger"
     "{{.Project}}/pkg/{{.ModuleName}}/service"
     "{{.Project}}/pkg/{{.ModuleName}}/validate"
 )

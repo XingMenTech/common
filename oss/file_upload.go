@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/XingMenTech/common/logger"
 	"github.com/sirupsen/logrus"
-	"gitlab.novgate.com/common/common/logger"
 )
 
 type Config struct {

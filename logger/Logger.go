@@ -7,8 +7,8 @@ package logger
 import (
 	"errors"
 	"fmt"
+	"github.com/XingMenTech/common/utils"
 	"github.com/sirupsen/logrus"
-	"gitlab.novgate.com/common/common/utils"
 	"os"
 	"path/filepath"
 	"time"

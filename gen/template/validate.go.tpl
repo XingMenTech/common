@@ -1,7 +1,7 @@
 package validate
 
 import (
-	"gitlab.novgate.com/common/common"
+	"github.com/XingMenTech/common"
 	{{if .IsTime}} "time" {{end}}
 )
 

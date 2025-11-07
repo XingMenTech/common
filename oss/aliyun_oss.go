@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/XingMenTech/common/logger"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"gitlab.novgate.com/common/common/logger"
 )
 
 // ------------------[oss]------------------

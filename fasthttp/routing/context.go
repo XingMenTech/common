@@ -6,7 +6,8 @@ package routing
 
 import (
 	"fmt"
-	"gitlab.novgate.com/common/common"
+
+	"github.com/XingMenTech/common"
 
 	"github.com/valyala/fasthttp"
 )

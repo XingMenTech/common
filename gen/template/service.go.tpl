@@ -6,7 +6,7 @@ import (
 	"{{.Project}}/pkg/{{.ModuleName}}/repository"
 	"{{.Project}}/pkg/{{.ModuleName}}/validate"
 	"github.com/sirupsen/logrus"
-	"gitlab.novgate.com/common/common/logger"
+	"github.com/XingMenTech/common/logger"
 	"github.com/beego/beego/v2/client/orm"
 	"errors"
 )

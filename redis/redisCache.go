@@ -9,8 +9,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/XingMenTech/common/utils"
 	"github.com/go-redis/redis/v8"
-	"gitlab.novgate.com/common/common/utils"
 )
 
 var (

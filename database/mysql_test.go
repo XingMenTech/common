@@ -1,8 +1,9 @@
 package database
 
 import (
-	"gitlab.novgate.com/common/common/logger"
 	"testing"
+
+	"github.com/XingMenTech/common/logger"
 )
 
 func TestMysql(t *testing.T) {

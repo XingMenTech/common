@@ -3,9 +3,10 @@ package database
 import (
 	"errors"
 	"fmt"
+
+	"github.com/XingMenTech/common/logger"
 	"github.com/beego/beego/v2/client/orm"
 	_ "github.com/go-sql-driver/mysql"
-	"gitlab.novgate.com/common/common/logger"
 )
 
 // ------------------[mysql]-------------------

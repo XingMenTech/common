@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"gitlab.novgate.com/common/common"
-	"gitlab.novgate.com/common/common/logger"
+	"github.com/XingMenTech/common"
+	"github.com/XingMenTech/common/logger"
 )
 
 var {{.VarFieldName}}Repo *{{.ModelName}}Repo

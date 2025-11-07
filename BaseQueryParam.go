@@ -1,7 +1,7 @@
 package common
 
 import (
-	"gitlab.novgate.com/common/common/utils"
+	"github.com/XingMenTech/common/utils"
 	"time"
 )
 

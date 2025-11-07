@@ -2,9 +2,9 @@ package gen
 
 import (
 	"fmt"
+	"github.com/XingMenTech/common/database"
+	"github.com/XingMenTech/common/logger"
 	"github.com/beego/beego/v2/client/orm"
-	"gitlab.novgate.com/common/common/database"
-	"gitlab.novgate.com/common/common/logger"
 	"os"
 	"strings"
 	"text/template"
