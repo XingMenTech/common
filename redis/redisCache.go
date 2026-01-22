@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"time"
-	"unsafe"
 
 	"github.com/XingMenTech/common/utils"
 	"github.com/go-redis/redis/v8"
@@ -88,7 +87,7 @@ func Publish(channel string, msg interface{}) error {
 	if err != nil {
 		return err
 	}
-	return client.Publish(ctx, channel, string(msgByte)).Err()
+	return client.Publish(ctx, channel, msgByte).Err()
 }
 
 func ReceiveMessage(pubSub *redis.PubSub) (*redis.Message, error) {
@@ -107,38 +106,120 @@ func ExpireIn(key string, d time.Duration) error {
 	return client.Expire(ctx, associate(key), d).Err()
 }
 
-func encode(data interface{}) ([]byte, error) {
-	if data == nil {
-		return nil, errors.New("data is nil")
+func encode(data interface{}) (string, error) {
+	// 使用反射来处理各种类型
+	val := reflect.ValueOf(data)
+
+	// 如果是指针，获取其指向的值
+	for val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return "", errors.New("data is nil")
+		}
+		val = val.Elem()
 	}
 
-	switch data.(type) {
-	case string:
-		return []byte(data.(string)), nil
-	case []byte:
-		return data.([]byte), nil
+	switch val.Kind() {
+	case reflect.String:
+		return val.String(), nil
+	case reflect.Bool:
+		if val.Bool() {
+			return "true", nil
+		}
+		return "false", nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return fmt.Sprintf("%d", val.Int()), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return fmt.Sprintf("%d", val.Uint()), nil
+	case reflect.Float32, reflect.Float64:
+		return fmt.Sprintf("%g", val.Float()), nil
+	case reflect.Slice:
+		// 检查是否为 []byte 类型
+		if val.Type().Elem().Kind() == reflect.Uint8 {
+			return string(val.Bytes()), nil
+		}
+		// 其他切片类型使用 JSON 序列化
+		fallthrough
 	default:
-		return json.Marshal(data)
+		// 其他复杂类型使用 JSON 序列化
+		bytes, err := json.Marshal(data)
+		if err != nil {
+			return "", err
+		}
+		return string(bytes), nil
 	}
 }
-func decode(data []byte, v any) error {
-
-	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(v)}
-	}
-
-	if data == nil {
+func decode(data string, v any) error {
+	if data == "" {
 		return errors.New("data is nil")
 	}
+
 	switch v.(type) {
-	case *string:
-		v = *(*string)(unsafe.Pointer(&data))
-		return nil
-	case *[]byte:
+	case string:
 		v = data
 		return nil
+	case []byte:
+		v = []byte(data)
+		return nil
 	default:
-		return json.Unmarshal(data, v)
+		return json.Unmarshal([]byte(data), v)
 	}
+}
+
+func decodeVal[T any](data string) (T, error) {
+	if data == "" {
+		var zero T
+		return zero, errors.New("data is nil")
+	}
+
+	var res = new(T)
+
+	// 获取目标类型的反射类型
+	targetType := reflect.TypeOf(res).Elem()
+
+	// 处理基本类型
+	switch targetType.Kind() {
+	case reflect.String:
+		str := data
+		return any(str).(T), nil
+	case reflect.Int:
+		intVal := utils.StringToInt(data)
+		return any(intVal).(T), nil
+	case reflect.Int64:
+		int64Val := utils.StringToInt64(data)
+		return any(int64Val).(T), nil
+	case reflect.Float64:
+		floatVal := utils.StringToFloat64(data)
+		return any(floatVal).(T), nil
+	case reflect.Bool:
+		boolVal := data == "true" || data == "1" || data == "True" || data == "TRUE"
+		return any(boolVal).(T), nil
+	case reflect.Slice:
+		// 检查是否为 []byte 类型
+		if targetType.Elem().Kind() == reflect.Uint8 { // []byte 实际上是 []uint8
+			byteSlice := []byte(data)
+			return any(byteSlice).(T), nil
+		}
+		// 对于其他切片类型，使用 JSON 反序列化
+		fallthrough
+	default:
+		// 对于复杂类型，使用 JSON 反序列化
+		err := json.Unmarshal([]byte(data), res)
+		if err != nil {
+			var zero T
+			return zero, err
+		}
+		return *res, nil
+	}
+}
+
+func decodeArr[T any](data []string) ([]T, error) {
+	res := make([]T, len(data))
+	for i, v := range data {
+		val, err := decodeVal[T](v)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = val
+	}
+	return res, nil
 }

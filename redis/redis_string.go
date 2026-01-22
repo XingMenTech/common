@@ -1,63 +1,46 @@
 package redis
 
 import (
-	"reflect"
 	"time"
 )
 
-// 1	SET key value 设置指定 key 的值。
+// Set 1	SET key value 设置指定 key 的值。
 func Set(key string, val interface{}, timeout int64) error {
-	cmd := client.Set(ctx, associate(key), val, time.Duration(timeout)*time.Second)
-	return cmd.Err()
-}
-func SetCache(key string, val interface{}, timeout int64) error {
 	bytes, err := encode(val)
 	if err != nil {
 		return err
 	}
-	cmd := client.Set(ctx, associate(key), string(bytes), time.Duration(timeout)*time.Second)
+	cmd := client.Set(ctx, associate(key), bytes, time.Duration(timeout)*time.Second)
 	return cmd.Err()
 }
+
 func SetForNoPrefix(key string, val interface{}, dur int64) error {
 	bytes, err := encode(val)
 	if err != nil {
 		return err
 	}
-	cmd := client.Set(ctx, key, string(bytes), time.Duration(dur)*time.Second)
+	cmd := client.Set(ctx, key, bytes, time.Duration(dur)*time.Second)
 	return cmd.Err()
 }
 
-// 2	GET key 获取指定 key 的值。
-func Get(key string, to interface{}) error {
+// Get 2	GET key 获取指定 key 的值。
+func Get[T any](key string) (t T, err error) {
 	cmd := client.Get(ctx, associate(key))
 	if cmd.Err() != nil {
-		return cmd.Err()
+		err = cmd.Err()
+		return
 	}
-	if err := cmd.Scan(to); err != nil {
-		return decode([]byte(cmd.Val()), to)
-	}
-	return nil
+	return decodeVal[T](cmd.Val())
 }
-func GetCache(key string, to interface{}) error {
-	cmd := client.Get(ctx, associate(key))
-	if cmd.Err() != nil {
-		return cmd.Err()
-	}
 
-	if err := cmd.Scan(to); err != nil {
-		return decode([]byte(cmd.Val()), to)
-	}
-	return nil
-}
-func GetForNoPrefix(key string, to interface{}) error {
+func GetForNoPrefix[T any](key string) (t T, err error) {
 	cmd := client.Get(ctx, key)
 	if cmd.Err() != nil {
-		return cmd.Err()
+		err = cmd.Err()
+		return
 	}
-	if err := cmd.Scan(to); err != nil {
-		return decode([]byte(cmd.Val()), to)
-	}
-	return nil
+
+	return decodeVal[T](cmd.Val())
 }
 
 // GetRange 3	GETRANGE key start end 返回 key 中字符串值的子字符
@@ -68,6 +51,10 @@ func GetRange(key string, start, end int64) (string, error) {
 
 // GetSet 4	GETSET key value 将给定 key 的值设为 value ，并返回 key 的旧值(old value)。
 func GetSet(key string, val interface{}) (string, error) {
+	val, err := encode(val)
+	if err != nil {
+		return "", err
+	}
 	cmd := client.GetSet(ctx, associate(key), val)
 	return cmd.Val(), cmd.Err()
 }
@@ -79,22 +66,28 @@ func GetBit(key string, offset int64) (int64, error) {
 }
 
 // MGet 6	MGET key1 [key2..] 获取所有(一个或多个)给定 key 的值。
-func MGet(to interface{}, keys ...string) []interface{} {
+func MGet[T any](keys ...string) (res []T, err error) {
 	var args []string
 	for _, key := range keys {
 		args = append(args, associate(key))
 	}
 	cmd := client.MGet(ctx, args...)
-	result := make([]interface{}, len(cmd.Val()))
-	resultType := reflect.TypeOf(to)
+
+	if cmd.Err() != nil {
+		err = cmd.Err()
+		return
+	}
+
+	result := make([]T, len(cmd.Val()))
+
 	for i, s := range cmd.Val() {
-		val := reflect.New(resultType).Interface()
-		if err := decode([]byte(s.(string)), val); err != nil {
+		v, err1 := decodeVal[T](s.(string))
+		if err1 != nil {
 			continue
 		}
-		result[i] = val
+		result[i] = v
 	}
-	return result
+	return result, nil
 }
 
 // SetBit 7	SETBIT key offset value 对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。
@@ -105,28 +98,40 @@ func SetBit(key string, offset int64, value int) (int64, error) {
 
 // SetEX 8	SETEX key seconds value 将值 value 关联到 key ，并将 key 的过期时间设为 seconds (以秒为单位)。
 func SetEX(key string, val interface{}, timeout int64) error {
-	return client.SetEX(ctx, associate(key), val, time.Duration(timeout)*time.Second).Err()
+	str, err := encode(val)
+	if err != nil {
+		return err
+	}
+	return client.SetEX(ctx, associate(key), str, time.Duration(timeout)*time.Second).Err()
 }
 
 // Setnx 9	SETNX key value 只有在 key 不存在时设置 key 的值。
-func Setnx(key string, value interface{}) (bool, error) {
-	cmd := client.SetNX(ctx, associate(key), value, 0)
+func Setnx(key string, val interface{}) (bool, error) {
+	str, err := encode(val)
+	if err != nil {
+		return false, err
+	}
+	cmd := client.SetNX(ctx, associate(key), str, 0)
 	return cmd.Val(), cmd.Err()
 }
 
 // SetnxExpire SETNX WITH EXPIRE (Second)
-func SetnxExpire(key string, value interface{}, expire int64) (bool, error) {
-	cmd := client.SetNX(ctx, associate(key), value, time.Duration(expire)*time.Second)
+func SetnxExpire(key string, val interface{}, expire int64) (bool, error) {
+	str, err := encode(val)
+	if err != nil {
+		return false, err
+	}
+	cmd := client.SetNX(ctx, associate(key), str, time.Duration(expire)*time.Second)
 	return cmd.Val(), cmd.Err()
 }
 
 // SetRange 10	SETRANGE key offset value 用 value 参数覆写给定 key 所储存的字符串值，从偏移量 offset 开始。
 func SetRange(key string, offset int64, value interface{}) error {
-	encode, err := encode(value)
+	str, err := encode(value)
 	if err != nil {
 		return err
 	}
-	cmd := client.SetRange(ctx, associate(key), offset, string(encode))
+	cmd := client.SetRange(ctx, associate(key), offset, str)
 	return cmd.Err()
 }
 
@@ -140,20 +145,26 @@ func Strlen(key string) (int64, error) {
 func MSet(keysAndValues map[string]interface{}) error {
 	var args []interface{}
 	for key, value := range keysAndValues {
-		encode, _ := encode(value)
-		args = append(args, associate(key), string(encode))
+		str, err := encode(value)
+		if err != nil {
+			return err
+		}
+
+		args = append(args, associate(key), str)
 	}
 
-	cmd := client.MSet(ctx, args...)
-	return cmd.Err()
+	return client.MSet(ctx, args...).Err()
 }
 
 // MSetnx 13	MSETNX key value [key value ...] 同时设置一个或多个 key-value 对，当且仅当所有给定 key 都不存在。
 func MSetnx(keysAndValues map[string]interface{}) (bool, error) {
 	var args []interface{}
 	for key, value := range keysAndValues {
-		encode, _ := encode(value)
-		args = append(args, associate(key), string(encode))
+		str, err := encode(value)
+		if err != nil {
+			return false, err
+		}
+		args = append(args, associate(key), str)
 	}
 	cmd := client.MSetNX(ctx, args...)
 	return cmd.Val(), cmd.Err()
@@ -161,8 +172,11 @@ func MSetnx(keysAndValues map[string]interface{}) (bool, error) {
 
 // PSetEX 14	PSETEX key milliseconds value 这个命令和 SETEX 命令相似，但它以毫秒为单位设置 key 的生存时间，而不是像 SETEX 命令那样，以秒为单位。
 func PSetEX(key string, val interface{}, timeout int64) error {
-	encode, _ := encode(val)
-	cmd := client.Set(ctx, associate(key), string(encode), time.Duration(timeout)*time.Millisecond)
+	str, err := encode(val)
+	if err != nil {
+		return err
+	}
+	cmd := client.Set(ctx, associate(key), str, time.Duration(timeout)*time.Millisecond)
 	return cmd.Err()
 }
 
@@ -197,8 +211,7 @@ func DecrBy(key string, val int64) (int64, error) {
 }
 
 // Append 20	APPEND key value 如果 key 已经存在并且是一个字符串， APPEND 命令将指定的 value 追加到该 key 原来值（value）的末尾。
-func Append(key string, val interface{}) (int64, error) {
-	encode, _ := encode(val)
-	cmd := client.Append(ctx, associate(key), string(encode))
+func Append(key string, val string) (int64, error) {
+	cmd := client.Append(ctx, associate(key), val)
 	return cmd.Val(), cmd.Err()
 }

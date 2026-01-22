@@ -1,21 +1,41 @@
 package redis
 
 import (
-	"github.com/go-redis/redis/v8"
 	"strconv"
+
+	"github.com/go-redis/redis/v8"
 )
 
 // ZAdd ZADD 向有序集合添加一个或多个成员，或者更新已存在成员的分数
-func ZAdd(key string, pairs map[string]float64) error {
+func ZAdd(key string, pairs map[interface{}]float64) error {
 	var args []*redis.Z
 	for k, v := range pairs {
+		val, err := encode(k)
+		if err != nil {
+			return err
+		}
 		args = append(args, &redis.Z{
 			Score:  v,
-			Member: k,
+			Member: val,
 		})
 	}
 
 	return client.ZAdd(ctx, associate(key), args...).Err()
+}
+
+func ZAddByScore(key string, member interface{}, score float64) error {
+
+	val, err := encode(member)
+	if err != nil {
+		return err
+	}
+
+	args := &redis.Z{
+		Score:  score,
+		Member: val,
+	}
+
+	return client.ZAdd(ctx, associate(key), args).Err()
 }
 
 // ZCard ZCARD 获取有序集合的成员数
@@ -31,21 +51,33 @@ func ZCount(key, min, max string) (int64, error) {
 }
 
 // ZScore ZSCORE
-func ZScore(key, member string) (float64, error) {
-	cmd := client.ZScore(ctx, associate(key), member)
+func ZScore(key, member interface{}) (float64, error) {
+	val, err := encode(member)
+	if err != nil {
+		return 0, err
+	}
+	cmd := client.ZScore(ctx, associate(key), val)
 	return cmd.Val(), cmd.Err()
 }
 
 // ZIncrBy ZINCRBY 有序集合中对指定成员的分数加上增量 increment
-func ZIncrBy(key, member string, increment float64) (float64, error) {
-	cmd := client.ZIncrBy(ctx, associate(key), increment, member)
+func ZIncrBy(key, member interface{}, increment float64) (float64, error) {
+	val, err := encode(member)
+	if err != nil {
+		return 0, err
+	}
+	cmd := client.ZIncrBy(ctx, associate(key), increment, val)
 	return cmd.Val(), cmd.Err()
 }
 
 // ZInterStore ZINTERSTORE 计算给定的一个或多个有序集的交集并将结果集存储在新的有序集合 destination 中
 func ZInterStore(destination string, keys ...string) (int64, error) {
+	arr := make([]string, len(keys))
+	for i, v := range keys {
+		arr[i] = associate(v)
+	}
 	cmd := client.ZInterStore(ctx, associate(destination), &redis.ZStore{
-		Keys: keys,
+		Keys: arr,
 	})
 	return cmd.Val(), cmd.Err()
 }
@@ -57,25 +89,22 @@ func ZLexCount(key, min, max string) (int64, error) {
 }
 
 // ZRange ZRANGE 通过索引区间返回有序集合指定区间内的成员
-func ZRange(key string, start, stop int64, withscores bool) ([]string, error) {
-
-	if withscores {
-		cmd := client.ZRangeWithScores(ctx, associate(key), start, stop)
-		if cmd.Err() != nil {
-			return []string{}, cmd.Err()
-		}
-		var res = make([]string, len(cmd.Val()))
-		for i, z := range cmd.Val() {
-			res[i] = z.Member.(string)
-		}
-		return res, nil
-	} else {
-		cmd := client.ZRange(ctx, associate(key), start, stop)
-		return cmd.Val(), cmd.Err()
+func ZRange[T any](key string, start, stop int64) (res []T, err error) {
+	cmd := client.ZRange(ctx, associate(key), start, stop)
+	if cmd.Err() != nil {
+		err = cmd.Err()
+		return
 	}
+	return decodeArr[T](cmd.Val())
 }
 
-// ZRangeByLex ZRANGEBYLEX key min max [LIMIT offset count] 通过字典区间返回有序集合的成员
+// ZRangeWithScores ZRANGE 通过分数返回有序集合指定区间内的成员
+func ZRangeWithScores(key string, start, stop int64) ([]redis.Z, error) {
+	cmd := client.ZRangeWithScores(ctx, associate(key), start, stop)
+	return cmd.Val(), cmd.Err()
+}
+
+// ZRangeByLex ZRANGEBYLEX key min max 通过字典区间返回有序集合的成员
 func ZRangeByLex(key, min, max string) ([]string, error) {
 	cmd := client.ZRangeByLex(ctx, associate(key), &redis.ZRangeBy{
 		Min: min,
@@ -86,93 +115,92 @@ func ZRangeByLex(key, min, max string) ([]string, error) {
 }
 
 // ZRangeByScore ZRANGEBYSCORE 通过分数返回有序集合指定区间内的成员
-func ZRangeByScore(key, min, max string, withscores bool) ([]string, error) {
-
-	if withscores {
-		cmd := client.ZRangeByScoreWithScores(ctx, associate(key), &redis.ZRangeBy{
-			Min: min,
-			Max: max,
-		})
-		if cmd.Err() != nil {
-			return []string{}, cmd.Err()
-		}
-		var res = make([]string, len(cmd.Val()))
-		for i, z := range cmd.Val() {
-			res[i] = z.Member.(string)
-		}
-		return res, nil
-	} else {
-		cmd := client.ZRangeByScore(ctx, associate(key), &redis.ZRangeBy{
-			Min: min,
-			Max: max,
-		})
-
-		return cmd.Val(), cmd.Err()
+func ZRangeByScore[T any](key, min, max string) (res []T, err error) {
+	cmd := client.ZRangeByScore(ctx, associate(key), &redis.ZRangeBy{
+		Min: min,
+		Max: max,
+	})
+	if cmd.Err() != nil {
+		err = cmd.Err()
+		return
 	}
+	return decodeArr[T](cmd.Val())
+}
 
+// ZRangeByScoreWithScores ZRANGEBYSCORE [WITHSCORES] 通过分数返回有序集合指定区间内的成员
+func ZRangeByScoreWithScores(key, min, max string) (res []redis.Z, err error) {
+	cmd := client.ZRangeByScoreWithScores(ctx, associate(key), &redis.ZRangeBy{
+		Min: min,
+		Max: max,
+	})
+	return cmd.Val(), cmd.Err()
 }
 
 // ZRank ZRANK key member 返回有序集合中指定成员的索引
-func ZRank(key, member string) (int64, error) {
-	cmd := client.ZRank(ctx, associate(key), member)
+func ZRank(key, member interface{}) (int64, error) {
+	val, err := encode(member)
+	if err != nil {
+		return 0, err
+	}
+	cmd := client.ZRank(ctx, associate(key), val)
 	return cmd.Val(), cmd.Err()
 }
 
 // ZRevRank ZREVRANK key member 返回有序集合中指定成员的排名，有序集成员按分数值递减(从大到小)排序
-func ZRevRank(key, member string) (int64, error) {
-	cmd := client.ZRevRank(ctx, associate(key), member)
+func ZRevRank(key, member interface{}) (int64, error) {
+	val, err := encode(member)
+	if err != nil {
+		return 0, err
+	}
+	cmd := client.ZRevRank(ctx, associate(key), val)
 	return cmd.Val(), cmd.Err()
 }
 
 // ZRevRange ZREVRANGE 返回有序集中指定区间内的成员，通过索引，分数从高到低
-func ZRevRange(key string, start, stop int, withscores bool) ([]string, error) {
-	if withscores {
-		cmd := client.ZRevRangeByScoreWithScores(ctx, associate(key), &redis.ZRangeBy{
-			Min:    strconv.Itoa(stop),
-			Max:    strconv.Itoa(start),
-			Offset: 0,
-			Count:  0,
-		})
-		if cmd.Err() != nil {
-			return []string{}, cmd.Err()
-		}
-		var res = make([]string, len(cmd.Val()))
-		for i, z := range cmd.Val() {
-			res[i] = z.Member.(string)
-		}
-		return res, nil
-	} else {
-		cmd := client.ZRevRange(ctx, associate(key), int64(start), int64(stop))
-		return cmd.Val(), cmd.Err()
+func ZRevRange[T any](key string, start, stop int64) ([]T, error) {
+	cmd := client.ZRevRange(ctx, associate(key), start, stop)
+	if cmd.Err() != nil {
+		return nil, cmd.Err()
 	}
+	return decodeArr[T](cmd.Val())
 }
 
 // ZRevRangeByScore ZREVRANGEBYSCORE key max min [WITHSCORES] 返回有序集中指定分数区间内的成员，分数从高到低排序
-func ZRevRangeByScore(key string, max, min int64, withscores bool) ([]string, error) {
-	if withscores {
-		cmd := client.ZRevRangeByScoreWithScores(ctx, associate(key), &redis.ZRangeBy{
-			Min: strconv.FormatInt(max, 10),
-			Max: strconv.FormatInt(min, 10),
-		})
-		if cmd.Err() != nil {
-			return []string{}, cmd.Err()
-		}
-		var res = make([]string, len(cmd.Val()))
-		for i, z := range cmd.Val() {
-			res[i] = z.Member.(string)
-		}
-		return res, nil
-	} else {
-		cmd := client.ZRevRangeByScore(ctx, associate(key), &redis.ZRangeBy{
-			Min: strconv.FormatInt(max, 10),
-			Max: strconv.FormatInt(min, 10),
-		})
-		return cmd.Val(), cmd.Err()
+func ZRevRangeByScore[T any](key, max, min string) ([]T, error) {
+	cmd := client.ZRevRangeByScore(ctx, associate(key), &redis.ZRangeBy{
+		Min: max,
+		Max: min,
+	})
+	if cmd.Err() != nil {
+		return nil, cmd.Err()
 	}
+	return decodeArr[T](cmd.Val())
+}
+
+// ZRevRangeByScoreWithScores ZREVRANGEBYSCORE [WITHSCORES] 返回有序集中指定分数区间内的成员，分数从高到低排序
+func ZRevRangeByScoreWithScores(key, max, min string) (res []redis.Z, err error) {
+	cmd := client.ZRevRangeByScoreWithScores(ctx, associate(key), &redis.ZRangeBy{
+		Min: max,
+		Max: min,
+	})
+	if cmd.Err() != nil {
+		err = cmd.Err()
+		return
+	}
+
+	return cmd.Val(), cmd.Err()
 }
 
 // ZRem ZREM 移除有序集合中的一个或多个成员
-func ZRem(key string, values ...interface{}) (int64, error) {
+func ZRem(key string, members ...interface{}) (int64, error) {
+	values := make([]interface{}, len(members))
+	for i, v := range members {
+		str, err := encode(v)
+		if err != nil {
+			return 0, err
+		}
+		values[i] = str
+	}
 	cmd := client.ZRem(ctx, associate(key), values...)
 	return cmd.Val(), cmd.Err()
 }
@@ -197,8 +225,14 @@ func ZRemRangeByScore(key string, min, max int64) (int64, error) {
 
 // ZUnionStore ZUNIONSTORE destination numkeys key [key ...] 计算给定的一个或多个有序集的并集，并存储在新的 key 中
 func ZUnionStore(destination string, keys ...string) (int64, error) {
+
+	arr := make([]string, len(keys))
+	for i, v := range keys {
+		arr[i] = associate(v)
+	}
+
 	cmd := client.ZUnionStore(ctx, associate(destination), &redis.ZStore{
-		Keys: keys,
+		Keys: arr,
 	})
 	return cmd.Val(), cmd.Err()
 }

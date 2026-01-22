@@ -245,9 +245,9 @@ func RandomString(length int) string {
 		if t < 10 {
 			result = append(result, strconv.Itoa(rand.Intn(10)))
 		} else if t < 36 {
-			result = append(result, string(rand.Intn(26)+65))
+			result = append(result, strconv.Itoa(rand.Intn(26)+65))
 		} else {
-			result = append(result, string(rand.Intn(26)+97))
+			result = append(result, strconv.Itoa(rand.Intn(26)+97))
 		}
 	}
 	return strings.Join(result, "")
