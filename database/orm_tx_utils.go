@@ -1,4 +1,4 @@
-package utils
+package database
 
 import (
 	"database/sql/driver"
@@ -25,7 +25,6 @@ func (tx *OrmTx) Execute(f TxFunc) error {
 	if tx.err != nil {
 		return tx.err
 	}
-
 	if tx.o == nil {
 		return driver.ErrBadConn
 	}

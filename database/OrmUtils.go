@@ -1,77 +1,18 @@
-package utils
+package database
 
 import (
 	"fmt"
+
+	"github.com/XingMenTech/common"
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/client/orm/clauses/order_clause"
-	"strings"
-	"time"
-)
-
-const (
-	DefaultPage     int = 1
-	DefaultPageSize int = 20
-	MaxPageSize     int = 500
 )
 
 type ListParam struct {
 	Param *orm.Condition
-	Page  *PageParam
-	Time  *TimeParam
+	Page  *common.PageParam
+	Time  *common.TimeParam
 	Order []*order_clause.Order
-}
-
-// BaseQueryParam 用于查询的类
-type PageParam struct {
-	Page     int `json:"page" form:"page" binding:"required"`
-	PageSize int `json:"pageSize" form:"pageSize" binding:"required"`
-}
-
-func (bqp *PageParam) IsValid() bool {
-	return bqp.Page > 0 && bqp.PageSize > 0
-}
-
-func (bqp *PageParam) Offset() int {
-	offset := 0
-	if bqp.Page > 1 {
-		offset = (bqp.Page - 1) * bqp.PageSize
-	}
-	return offset
-}
-
-func (bqp *PageParam) GetLimit() (limit, offset int) {
-	if bqp.Page < DefaultPage {
-		bqp.Page = DefaultPage
-	}
-	if bqp.PageSize <= 0 {
-		bqp.PageSize = DefaultPageSize
-	}
-	if bqp.PageSize > MaxPageSize {
-		bqp.PageSize = MaxPageSize
-	}
-
-	limit = bqp.PageSize
-	offset = (bqp.Page - 1) * bqp.PageSize
-	return
-}
-
-type TimeParam struct {
-	Column    string `json:"column" form:"column"`
-	StartTime string `json:"startTime" form:"startTime"` //开始时间
-	EndTime   string `json:"endTime" form:"endTime"`     //结束时间
-}
-
-func (req *TimeParam) IsValid() bool {
-	if req == nil {
-		return false
-	}
-	return req.StartTime != "" && req.EndTime != ""
-}
-
-func (req *TimeParam) GetTime() (start, end time.Time) {
-	t1 := ParseLocalTime(strings.TrimSpace(req.StartTime))
-	t2 := ParseLocalTime(strings.TrimSpace(req.EndTime))
-	return t1, t2
 }
 
 func FindOne[T any](id int64) *T {
@@ -99,15 +40,12 @@ func FindAll[T any](form ListParam) (list []*T, total int64, err error) {
 	if err != nil {
 		return
 	}
-
 	if total == 0 {
 		return
 	}
-
 	if len(form.Order) > 0 {
 		query = query.OrderClauses(form.Order...)
 	}
-
 	if form.Page != nil && form.Page.IsValid() {
 		limit, offset := form.Page.GetLimit()
 		query = query.Limit(limit, offset)
@@ -130,9 +68,6 @@ func Update[T any](o orm.TxOrmer, form T, columns ...string) (err error) {
 	} else {
 		_, err = o.Update(form, columns...)
 	}
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbUpdateError, err.Error())
-	//}
 	return err
 }
 
@@ -151,9 +86,6 @@ func UpdateByCondition[T any](o orm.TxOrmer, cond *orm.Condition, param orm.Para
 		query = query.SetCond(cond)
 	}
 	_, err = query.Update(param)
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbUpdateError, err.Error())
-	//}
 	return
 }
 
@@ -163,9 +95,6 @@ func Delete[T any](o orm.TxOrmer, form T) (err error) {
 	} else {
 		_, err = o.Delete(form)
 	}
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbUpdateError, err.Error())
-	//}
 	return
 }
 
@@ -182,9 +111,6 @@ func DeleteByCondition[T any](o orm.TxOrmer, cond *orm.Condition) (err error) {
 	}
 
 	_, err = query.SetCond(cond).Delete()
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbUpdateError, err.Error())
-	//}
 	return
 }
 
@@ -194,9 +120,6 @@ func Insert[T any](o orm.TxOrmer, form T) (err error) {
 	} else {
 		_, err = o.Insert(form)
 	}
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbInsertError, err.Error())
-	//}
 	return
 }
 
@@ -206,10 +129,6 @@ func InsertBatch(o orm.TxOrmer, bulk int, m interface{}) (i int64, err error) {
 	} else {
 		i, err = o.InsertMulti(bulk, m)
 	}
-
-	//if err != nil {
-	//	err = common.NewMsgError(common.CommonDbInsertError, err.Error())
-	//}
 
 	return
 }
