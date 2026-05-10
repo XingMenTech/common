@@ -94,6 +94,12 @@ func FindAll[T any](form ListParam) (list []*T, total int64, err error) {
 	return
 }
 
+func FindList[T any](cond *orm.Condition) (list []*T, err error) {
+	query := orm.NewOrm().QueryTable(new(T)).SetCond(cond)
+	list = make([]*T, 0)
+	_, err = query.All(&list)
+	return
+}
 func Count[T any](cond *orm.Condition) (int64, error) {
 	query := orm.NewOrm().QueryTable(new(T)).SetCond(cond)
 	return query.Count()
