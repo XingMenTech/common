@@ -15,6 +15,11 @@ type ListParam struct {
 	Order []*order_clause.Order
 }
 
+func ReadOne[T any](t T, cols ...string) error {
+	return orm.NewOrm().Read(&t, cols...)
+}
+
+// FindOne 根据ID查询单条记录
 func FindOne[T any](id int64) *T {
 	var model T
 	err := orm.NewOrm().QueryTable(&model).Filter("id", id).One(&model)
@@ -129,6 +134,5 @@ func InsertBatch(o orm.TxOrmer, bulk int, m interface{}) (i int64, err error) {
 	} else {
 		i, err = o.InsertMulti(bulk, m)
 	}
-
 	return
 }
